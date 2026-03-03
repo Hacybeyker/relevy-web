@@ -1,0 +1,58 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id            String         @id @default(cuid())
+  email         String         @unique
+  passwordHash  String
+  timezone      String         @default("UTC")
+  preferences   String         @default("{}") // JSON string for simplicity in sqlite
+  subscriptions Subscription[]
+  reminders     Reminder[]
+}
+
+model Subscription {
+  id             String           @id @default(cuid())
+  userId         String
+  user           User             @relation(fields: [userId], references: [id])
+  name           String
+  provider       String?
+  cost           Float
+  currency       String           @default("USD")
+  cadence        String           @default("monthly") // 'monthly' | 'annual'
+  startDate      DateTime
+  nextChargeDate DateTime
+  status         String           @default("active") // 'active' | 'canceled'
+  invoiceUrl     String?
+  history        BillingHistory[]
+  reminders      Reminder[]
+}
+
+model BillingHistory {
+  id             String       @id @default(cuid())
+  subscriptionId String
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id])
+  amount         Float
+  date           DateTime     @default(now())
+  currency       String       @default("USD")
+  method         String?
+}
+
+model Reminder {
+  id             String       @id @default(cuid())
+  userId         String
+  user           User         @relation(fields: [userId], references: [id])
+  subscriptionId String
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id])
+  type           String       // 'charge_due' | 'expiration'
+  dateTime       DateTime
+  delivered      Boolean      @default(false)
+}
